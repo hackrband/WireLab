@@ -1,9 +1,17 @@
 import tkinter as tk
+from circuit import Circuit
 
 root = tk.Tk()
 root.title("WireLab")
-
 root.geometry("900x400")
+
+# circuit.py imports
+circuit = Circuit()
+tool = "select"
+start = None
+colors = {"led": "red", "resistor": "tan", "button": "black"}
+hole_pos = {}
+hole_at = {}
 
 # Breadboard Values
 SPACING = 30
@@ -28,21 +36,23 @@ for col in range(20):
         if row >= 5:
             y += GAP
 
-        holes[(col, row)] = canvas.create_oval(
+        hole = canvas.create_oval(
             x - RADIUS, y - RADIUS, x + RADIUS, y + RADIUS, fill="#bcc7bf", tags="hole"
         )
+        holes[(col, row)] = hole
+        hole_at[hole] = (col, row)
+        hole_pos[(col, row)] = (x, y)
 
 # -----------------
 
 def pick_tool(name):
-    print("tool:", name)
-
-#def adjust_voltage(volts):
-#    print("voltage:", volts)
+    global tool, start
+    tool = name
+    start = None
 
 tk.Button(panel, text="LED", command=lambda: pick_tool("led")).pack(fill="x")
 tk.Button(panel, text="Resistor", command=lambda: pick_tool("resistor")).pack(fill="x")
-tk.Button(panel, text="Capacitor", command=lambda: pick_tool("capacitor")).pack(fill="x")
+tk.Button(panel, text="Button", command=lambda: pick_tool("button")).pack(fill="x")
 tk.Button(panel, text="Wire", command=lambda: pick_tool("wire")).pack(fill="x")
 
 # Voltage Scale
@@ -58,7 +68,39 @@ tk.Scale(panel, from_=1.5, to=24, resolution=0.5,
          orient="horizontal", variable=volts, showvalue=False, command=adjust_label).pack()
 #--------------
 
-canvas.tag_bind("hole", "<Button-1>", lambda e: print("clicked", e.x, e.y))
+def redraw():
+    canvas.delete("part")
+    for a, b in circuit.wires:
+        x1, y1 = hole_pos[a]
+        x2, y2 = hole_pos[b]
+        canvas.create_line(x1, y1, x2, y2, fill="black", tags="part", width=4)
+    for kind, a, b in circuit.components:
+        x1, y1 = hole_pos[a]
+        x2, y2 = hole_pos[b]
+        mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+        canvas.create_line(x1, y1, x2, y2, fill="black", tags="part", width=4)
+        canvas.create_rectangle(mx - 10, my - 10, mx + 10, my + 10, fill=colors[kind], tags="part")
+    canvas.tag_raise("hole")
+
+def on_hole_click(event):
+    global start
+    item = canvas.find_withtag("current")
+    if not item or tool == "select":
+        return
+    hole = hole_at[item[0]]
+    if start is None:
+        start = hole
+        print("first hole:", hole)
+        return
+    if tool == "wire":
+        circuit.add_wire(start, hole)
+    else:
+        circuit.add_component(tool, start, hole)
+    print(circuit.wires, circuit.components)
+    redraw()
+    start = None
+
+canvas.tag_bind("hole", "<Button-1>", on_hole_click)
 canvas.bind("<Motion>", lambda e: None)
 
 def tick():
