@@ -25,7 +25,7 @@ screenshots/
 ## Roadmap
 - [x] Hole grid and layout
 - [x] Voltage slider
-- [ ] Part placement (LED, resistor, wire, switch)
+- [x] Part placement (LED, resistor, wire, switch)
 - [ ] Circuit calculations (current, LED polarity, brightness)
 - [ ] Tutorial and preview mode
 - [ ] Offline packaging
